@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { 
   ChevronDown, ChevronUp, Check, X, ShoppingCart, Home, Settings, List, 
-  Trash2, Edit2, Plus, Download, RotateCcw, Package 
+  Trash2, Edit2, Plus, Download, RotateCcw, Package, Upload
 } from 'lucide-react';
 
+// 施設名の設定
 const FACILITIES = ['警固', '博多天神', 'まるしん荘', '住吉102', '住吉105'];
 const DEFAULT_SHOP_OPTIONS = ['未設定', 'Amazon', '楽天', 'ダイソー', 'セリア', 'ドラッグストア', 'ホームセンター'];
 
@@ -28,6 +29,7 @@ export default function MultiFacilityInventory() {
   const [newItemName, setNewItemName] = useState('');
   const [newItemShop, setNewItemShop] = useState('未設定');
   const [newShopName, setNewShopName] = useState('');
+  const [importText, setImportText] = useState('');
 
   const [editingLocIndex, setEditingLocIndex] = useState(null);
   const [editingItemKey, setEditingItemKey] = useState(null); 
@@ -68,11 +70,28 @@ export default function MultiFacilityInventory() {
     const textArea = document.createElement("textarea");
     textArea.value = text; document.body.appendChild(textArea);
     textArea.select(); document.execCommand('copy');
-    showToastMessage('コピー完了！'); document.body.removeChild(textArea);
+    showToastMessage('コピー完了！これをスマホに送ってください'); document.body.removeChild(textArea);
+  };
+
+  const handleImport = () => {
+    try {
+      const parsed = JSON.parse(importText);
+      if (parsed.inventoryData && parsed.inventoryState) {
+        setInventoryData(parsed.inventoryData);
+        setInventoryState(parsed.inventoryState);
+        if (parsed.shopOptions) setShopOptions(parsed.shopOptions);
+        showToastMessage('データを読み込みました！');
+        setImportText('');
+      } else {
+        alert('データの形式が正しくありません');
+      }
+    } catch (e) {
+      alert('読み込みに失敗しました。正しいデータを貼り付けてください');
+    }
   };
 
   const resetFacilityStatus = () => {
-    if (!window.confirm(`${selectedFacility} をすべて在庫ありに戻しますか？`)) return;
+    if (!window.confirm(`${selectedFacility} の全備品を「在庫あり」に戻しますか？`)) return;
     setInventoryState(prev => {
       const newState = JSON.parse(JSON.stringify(prev));
       const resetData = {};
@@ -152,7 +171,7 @@ export default function MultiFacilityInventory() {
   };
 
   const deleteItem = (locIdx, itemIdx) => {
-    if (!confirm('品目を削除しますか？')) return;
+    if (!confirm('この備品を削除しますか？')) return;
     const newData = JSON.parse(JSON.stringify(inventoryData));
     newData[selectedFacility][locIdx].items.splice(itemIdx, 1);
     setInventoryData(newData);
@@ -175,15 +194,14 @@ export default function MultiFacilityInventory() {
     return shops;
   };
 
-  // 1から20までの選択肢を生成
   const quantityOptions = Array.from({ length: 20 }, (_, i) => i + 1);
 
   if (currentScreen === 'home') {
     return (
       <div className="min-h-screen bg-slate-200 p-4 md:p-6 flex flex-col items-center font-bold text-slate-900">
-        <h1 className="text-3xl md:text-4xl mt-8 mb-8 italic uppercase tracking-tighter">Stock Master</h1>
+        <h1 className="text-3xl md:text-4xl mt-8 mb-8 italic uppercase tracking-tighter text-center">SUNZ 在庫管理</h1>
         <button onClick={() => setCurrentScreen('all_shopping')} className="w-full max-w-4xl bg-orange-600 text-white p-6 md:p-8 rounded-3xl shadow-xl mb-8 flex items-center justify-center gap-4 border-b-8 border-orange-800 active:translate-y-1 transition-all">
-          <ShoppingCart size={32} /><div className="text-xl md:text-2xl font-bold uppercase tracking-widest text-center">全施設まとめ買い物リスト</div>
+          <ShoppingCart size={32} /><div className="text-xl md:text-2xl font-bold tracking-widest text-center">全施設まとめ買い物リスト</div>
         </button>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full max-w-4xl">
           {FACILITIES.map(f => (
@@ -201,7 +219,7 @@ export default function MultiFacilityInventory() {
         <div className="max-w-3xl mx-auto p-4">
           <div className="bg-white rounded-2xl shadow-sm p-4 mb-6 flex items-center justify-between border-b-4 border-orange-600">
             <button onClick={() => setCurrentScreen('home')} className="flex items-center gap-2 font-bold bg-slate-100 px-3 py-2 rounded-xl text-sm md:text-base"><Home size={20}/>戻る</button>
-            <h2 className="text-lg md:text-2xl font-bold italic uppercase tracking-widest text-orange-600">Shopping List</h2>
+            <h2 className="text-lg md:text-2xl font-bold tracking-widest text-orange-600 text-center flex-1">買い物リスト</h2>
             <div className="w-10"></div>
           </div>
           <div className="space-y-6">
@@ -261,7 +279,6 @@ export default function MultiFacilityInventory() {
                           {!status.hasStock && (
                             <div className="mt-5 flex items-center justify-center gap-4 bg-white p-4 rounded-xl border-2 border-red-200 shadow-inner">
                               <span className="text-lg font-bold text-slate-700">必要数:</span>
-                              {/* ↓ ここをプルダウンに変更しました ↓ */}
                               <select 
                                 value={status.quantity} 
                                 onChange={(e) => setItemQuantity(loc.location, item.name, e.target.value)} 
@@ -281,7 +298,7 @@ export default function MultiFacilityInventory() {
                 )}
               </div>
             ))}
-            <button onClick={() => setCurrentScreen('all_shopping')} className="w-full bg-orange-600 text-white py-6 md:py-8 rounded-3xl font-bold text-2xl md:text-3xl shadow-xl border-b-8 border-orange-800 mt-6 active:translate-y-1 transition-all"><ShoppingCart size={28} strokeWidth={4} className="inline mr-3 md:mr-4"/>買い物リストへ</button>
+            <button onClick={() => setCurrentScreen('all_shopping')} className="w-full bg-orange-600 text-white py-6 md:py-8 rounded-3xl font-bold text-2xl md:text-3xl shadow-xl border-b-8 border-orange-800 mt-6 active:translate-y-1 transition-all text-center flex items-center justify-center gap-2"><ShoppingCart size={28} strokeWidth={4}/>買い物リストへ</button>
           </div>
         )}
 
@@ -289,7 +306,7 @@ export default function MultiFacilityInventory() {
           <div className="space-y-6 pb-10 px-1">
             <div className="bg-white p-5 md:p-8 rounded-3xl shadow-lg border-2 border-blue-200">
               <h3 className="text-xl md:text-2xl mb-4 flex items-center gap-2 text-blue-800 font-black"><ShoppingCart size={24}/>購入先リストの編集</h3>
-              <div className="text-xs text-slate-500 mb-4">※ ここで追加したお店が、アイテム編集時の候補に出ます</div>
+              <div className="text-xs text-slate-500 mb-4">※ 追加したお店が備品編集時の候補に出ます</div>
               <div className="flex flex-wrap gap-2 mb-6">
                 {shopOptions.map((shop, idx) => (
                   <div key={idx} className="bg-slate-100 px-3 py-2 rounded-xl border-2 border-slate-200 text-sm md:text-base flex items-center gap-1 font-bold">{shop}{shop !== '未設定' && <button onClick={() => deleteShop(idx)} className="text-red-600 p-1 ml-1 text-lg">×</button>}</div>
@@ -301,8 +318,24 @@ export default function MultiFacilityInventory() {
               </div>
             </div>
 
+            {/* ↓ データの引っ越し機能 ↓ */}
+            <div className="bg-white p-5 md:p-8 rounded-3xl shadow-lg border-2 border-green-200">
+               <h3 className="text-lg md:text-xl mb-4 font-bold text-green-700 flex items-center gap-2"><Upload size={24}/>データの移行（PC ↔ スマホ）</h3>
+               <div className="space-y-4">
+                 <button onClick={() => handleCopy(JSON.stringify({ inventoryData, inventoryState, shopOptions }))} className="w-full bg-green-700 text-white py-4 rounded-2xl text-lg border-b-8 border-green-900 shadow-lg active:translate-y-2 transition-all font-bold flex items-center justify-center gap-2"><Download size={24}/>データをコピーする</button>
+                 <div className="text-xs text-slate-500 pt-2">読み込み（貼り付け）:</div>
+                 <textarea 
+                   className="w-full h-24 p-3 border-2 border-slate-200 rounded-xl text-xs font-mono bg-slate-50"
+                   placeholder="コピーした文字をここに貼り付けてください"
+                   value={importText}
+                   onChange={(e) => setImportText(e.target.value)}
+                 />
+                 <button onClick={handleImport} className="w-full bg-blue-600 text-white py-4 rounded-2xl text-lg border-b-8 border-blue-800 shadow-lg active:translate-y-2 transition-all font-bold">データを読み込む</button>
+               </div>
+            </div>
+
             <div className="bg-white p-5 md:p-8 rounded-3xl shadow-lg border-2 border-red-200">
-               <h3 className="text-lg md:text-xl mb-4 font-bold text-red-600"><RotateCcw className="inline mr-2" size={20}/>チェック状態のリセット</h3>
+               <h3 className="text-lg md:text-xl mb-4 font-bold text-red-600"><RotateCcw className="inline mr-2" size={20}/>状態のリセット</h3>
                <button onClick={resetFacilityStatus} className="w-full bg-red-600 text-white py-4 md:py-5 rounded-2xl text-lg md:text-xl border-b-8 border-red-900 shadow-lg active:translate-y-2 transition-all font-bold">すべて在庫ありに戻す</button>
             </div>
 
@@ -346,7 +379,7 @@ export default function MultiFacilityInventory() {
                 </div>
                 
                 <div className="bg-blue-50 p-5 md:p-6 rounded-3xl border-2 border-blue-100">
-                  <h5 className="mb-3 text-sm md:text-base italic underline text-blue-800 tracking-widest uppercase font-bold">Add New Item</h5>
+                  <h5 className="mb-3 text-sm md:text-base italic underline text-blue-800 tracking-widest uppercase font-bold">新しい備品を追加</h5>
                   <input className="w-full p-3 border-2 border-white rounded-xl mb-3 text-lg font-bold" placeholder="品名" value={newItemName} onChange={e => setNewItemName(e.target.value)} />
                   <div className="flex gap-2">
                     <input list="master-shop-list" className="flex-1 p-3 border-2 border-white rounded-xl text-lg bg-white font-bold" placeholder="購入先" value={newItemShop} onChange={e => setNewItemShop(e.target.value)} />
@@ -357,22 +390,18 @@ export default function MultiFacilityInventory() {
                         setInventoryData(newData);
                         setNewItemName('');
                         showToastMessage('追加しました');
-                    }} className="bg-blue-700 text-white px-6 rounded-xl text-2xl active:scale-95">＋</button>
+                    }} className="bg-blue-700 text-white px-6 rounded-xl text-2xl active:scale-95 shadow-lg">＋</button>
                   </div>
                 </div>
               </div>
             ))}
             
             <div className="bg-white p-6 md:p-8 rounded-3xl shadow-xl border-4 border-slate-900">
-               <h3 className="text-lg md:text-2xl mb-4 italic tracking-widest uppercase text-slate-900 font-bold">Add Category</h3>
+               <h3 className="text-lg md:text-2xl mb-4 italic tracking-widest uppercase text-slate-900 font-bold">カテゴリを追加</h3>
                <div className="flex flex-col sm:flex-row gap-2">
                  <input className="flex-1 p-4 border-2 border-slate-100 rounded-xl text-lg font-bold bg-slate-50" placeholder="例: ベランダ" value={newLocationName} onChange={e => setNewLocationName(e.target.value)} />
-                 <button onClick={addLocation} className="bg-slate-900 text-white py-3 sm:px-8 rounded-xl text-lg font-bold active:scale-95">追加</button>
+                 <button onClick={addLocation} className="bg-slate-900 text-white py-3 sm:px-8 rounded-xl text-lg font-bold active:scale-95 shadow-md">追加</button>
                </div>
-            </div>
-
-            <div className="pt-6">
-              <button onClick={() => handleCopy(JSON.stringify({ inventoryData, inventoryState, shopOptions }, null, 2))} className="w-full bg-green-700 text-white py-6 rounded-3xl text-xl border-b-8 border-green-900 flex items-center justify-center gap-3 shadow-xl active:translate-y-2 transition-all font-bold tracking-widest uppercase"><Download size={32}/>Backup Data</button>
             </div>
           </div>
         )}
@@ -384,7 +413,7 @@ export default function MultiFacilityInventory() {
 
       <div className="fixed bottom-0 w-full bg-white border-t-4 border-slate-300 flex p-2 shadow-2xl z-40 font-bold max-w-none">
         <button onClick={() => {setCurrentTab('checklist'); window.scrollTo(0,0);}} className={`flex-1 flex flex-col items-center p-2 rounded-xl ${currentTab === 'checklist' ? 'bg-blue-700 text-white shadow-inner' : 'text-slate-500'}`}><List size={28} strokeWidth={4}/><span className="text-xs mt-1">在庫チェック</span></button>
-        <button onClick={() => {setCurrentTab('settings'); window.scrollTo(0,0);}} className={`flex-1 flex flex-col items-center p-2 rounded-xl ${currentTab === 'settings' ? 'bg-blue-700 text-white shadow-inner' : 'text-slate-500'}`}><Settings size={28} strokeWidth={4}/><span className="text-xs mt-1">管理</span></button>
+        <button onClick={() => {setCurrentTab('settings'); window.scrollTo(0,0);}} className={`flex-1 flex flex-col items-center p-2 rounded-xl ${currentTab === 'settings' ? 'bg-blue-700 text-white shadow-inner' : 'text-slate-500'}`}><Settings size={28} strokeWidth={4}/><span className="text-xs mt-1">管理設定</span></button>
       </div>
     </div>
   );
