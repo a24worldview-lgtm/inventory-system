@@ -96,7 +96,7 @@ export default function MultiFacilityInventory() {
   };
 
   const setItemQuantity = (location, item, quantity) => {
-    const qty = Math.max(1, parseInt(quantity) || 1);
+    const qty = parseInt(quantity) || 1;
     setInventoryState(prev => {
       const newState = JSON.parse(JSON.stringify(prev));
       newState[selectedFacility][location][item].quantity = qty;
@@ -174,6 +174,9 @@ export default function MultiFacilityInventory() {
     });
     return shops;
   };
+
+  // 1から20までの選択肢を生成
+  const quantityOptions = Array.from({ length: 20 }, (_, i) => i + 1);
 
   if (currentScreen === 'home') {
     return (
@@ -258,15 +261,16 @@ export default function MultiFacilityInventory() {
                           {!status.hasStock && (
                             <div className="mt-5 flex items-center justify-center gap-4 bg-white p-4 rounded-xl border-2 border-red-200 shadow-inner">
                               <span className="text-lg font-bold text-slate-700">必要数:</span>
-                              <input 
-                                type="number" 
-                                inputMode="numeric"
-                                min="1" 
+                              {/* ↓ ここをプルダウンに変更しました ↓ */}
+                              <select 
                                 value={status.quantity} 
-                                onFocus={(e) => e.target.select()}
                                 onChange={(e) => setItemQuantity(loc.location, item.name, e.target.value)} 
-                                className="w-20 p-2 border-4 border-slate-300 rounded-xl text-center text-xl font-bold bg-slate-50" 
-                              />
+                                className="w-24 p-2 border-4 border-slate-300 rounded-xl text-center text-xl font-bold bg-slate-50 appearance-none"
+                              >
+                                {quantityOptions.map(num => (
+                                  <option key={num} value={num}>{num}</option>
+                                ))}
+                              </select>
                               <span className="text-lg font-bold text-slate-700">個</span>
                             </div>
                           )}
@@ -322,8 +326,8 @@ export default function MultiFacilityInventory() {
                       <div className="flex-1 w-full">
                         {editingItemKey === `${lIdx}-${iIdx}` ? (
                           <div className="flex flex-col gap-3 p-3 bg-blue-50 rounded-xl border-2 border-blue-400">
-                            <input autoFocus onFocus={(e) => e.target.select()} className="p-2 text-lg border-2 border-slate-300 rounded-lg font-bold" defaultValue={item.name} onBlur={e => updateItemName(lIdx, iIdx, e.target.value)} />
-                            <input list="master-shop-list" onFocus={(e) => e.target.select()} className="p-2 text-lg border-2 border-slate-300 rounded-lg font-bold" defaultValue={item.shop} onBlur={e => updateItemShop(lIdx, iIdx, e.target.value)} />
+                            <input autoFocus className="p-2 text-lg border-2 border-slate-300 rounded-lg font-bold" defaultValue={item.name} onBlur={e => updateItemName(lIdx, iIdx, e.target.value)} />
+                            <input list="master-shop-list" className="p-2 text-lg border-2 border-slate-300 rounded-lg font-bold" defaultValue={item.shop} onBlur={e => updateItemShop(lIdx, iIdx, e.target.value)} />
                             <button onClick={() => setEditingItemKey(null)} className="bg-blue-600 text-white py-2 rounded-lg font-bold">完了</button>
                           </div>
                         ) : (
