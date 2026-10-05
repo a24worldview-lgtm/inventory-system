@@ -101,6 +101,15 @@ export class Sync {
         this.stamps.set(f.id, now);
       }
     });
+    // 初期サンプルはクラウドに送っていないので、最初に編集したときに全体を送る
+    if (prev.seeded) {
+      next.facilities.forEach((f) => {
+        this.dirty.add(f.id);
+        this.stamps.set(f.id, now);
+      });
+      this.dirty.add(SETTINGS_KEY);
+      this.stamps.set(SETTINGS_KEY, now);
+    }
     const nextIds = new Set(next.facilities.map((f) => f.id));
     prev.facilities.forEach((f) => {
       if (!nextIds.has(f.id)) {
@@ -247,6 +256,7 @@ export class Sync {
       const keepLocalSettings = this.dirty.has(SETTINGS_KEY) || !settings;
       this.cb.setData({
         ...local,
+        seeded: undefined, // クラウドのデータを受け取ったので、もうサンプルではない
         facilities: merged,
         shops: keepLocalSettings ? local.shops : settings.shops,
         purchased: keepLocalSettings ? local.purchased : settings.purchased,
