@@ -17,8 +17,9 @@
   --done: #9a958b;
 }
 
+/* ダーク表示。設定の「表示」が自動なら端末の設定に従い、ダーク／ライトを選べばそれに固定する */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     --bg: #151514;
     --surface: #1f1f1d;
     --surface-2: #262624;
@@ -33,6 +34,22 @@
     --need-soft: #3a1f19;
     --done: #6f6b63;
   }
+}
+
+:root[data-theme="dark"] {
+  --bg: #151514;
+  --surface: #1f1f1d;
+  --surface-2: #262624;
+  --ink: #eeece7;
+  --muted: #a19d94;
+  --line: #34332f;
+  --accent: #5fb592;
+  --accent-ink: #0f1f18;
+  --accent-soft: #1d3029;
+  --need: #ef7a63;
+  --need-ink: #1f0e0a;
+  --need-soft: #3a1f19;
+  --done: #6f6b63;
 }
 
 @theme inline {

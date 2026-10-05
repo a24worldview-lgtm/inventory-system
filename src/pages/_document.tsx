@@ -1,4 +1,5 @@
 import { Html, Head, Main, NextScript } from "next/document";
+import { themeInitScript } from "@/lib/theme";
 
 export default function Document() {
   return (
@@ -10,6 +11,7 @@ export default function Document() {
         <meta name="apple-mobile-web-app-title" content="在庫チェック" />
         <meta name="theme-color" content="#f3f1ec" media="(prefers-color-scheme: light)" />
         <meta name="theme-color" content="#151514" media="(prefers-color-scheme: dark)" />
+        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
       </Head>
       <body className="antialiased">
         <Main />

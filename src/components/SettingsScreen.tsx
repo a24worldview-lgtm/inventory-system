@@ -1,8 +1,10 @@
 import { useRef, useState } from 'react';
 import type { ReactNode } from 'react';
-import { ArrowDown, ArrowUp, ClipboardCopy, Download, History, Pencil, Trash2, Upload } from 'lucide-react';
+import { ArrowDown, ArrowUp, ClipboardCopy, Download, History, Monitor, Moon, Pencil, Sun, Trash2, Upload } from 'lucide-react';
 import { countItems, ops, splitNames, useStore } from '@/lib/store';
 import { convertLegacy, parseBackup, readLegacyFromStorage } from '@/lib/migrate';
+import { useTheme } from '@/lib/theme';
+import type { ThemePref } from '@/lib/theme';
 import { copyText } from './ShoppingScreen';
 import { Card, Header, QuickAdd } from './ui';
 
@@ -71,6 +73,33 @@ function EditableRow({
   );
 }
 
+const THEME_OPTIONS: { value: ThemePref; label: string; icon: typeof Sun }[] = [
+  { value: 'auto', label: '自動', icon: Monitor },
+  { value: 'dark', label: 'ダーク', icon: Moon },
+  { value: 'light', label: 'ライト', icon: Sun },
+];
+
+function ThemeSwitch() {
+  const [pref, setPref] = useTheme();
+  return (
+    <div className="flex rounded-2xl border border-line bg-surface p-1">
+      {THEME_OPTIONS.map(({ value, label, icon: Icon }) => (
+        <button
+          key={value}
+          onClick={() => setPref(value)}
+          aria-pressed={pref === value}
+          className={`flex flex-1 items-center justify-center gap-1.5 rounded-xl py-2.5 text-sm font-bold ${
+            pref === value ? 'bg-accent text-accent-ink' : 'text-muted'
+          }`}
+        >
+          <Icon size={16} />
+          {label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 export function SettingsScreen() {
   const { data, apply, replaceAll, showToast } = useStore();
   const [restoreText, setRestoreText] = useState('');
@@ -111,6 +140,10 @@ export function SettingsScreen() {
     <>
       <Header title="設定" />
       <div className="mx-auto max-w-2xl space-y-8 px-4 pb-28 pt-4">
+        <Section title="表示" note="「自動」はスマホのダークモード設定に合わせます">
+          <ThemeSwitch />
+        </Section>
+
         <Section title="施設" note="名前をタップすると変更できます">
           <Card>
             <ul>
