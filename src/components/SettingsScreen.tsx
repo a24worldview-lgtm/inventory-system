@@ -1,8 +1,8 @@
 import { useRef, useState } from 'react';
 import type { ReactNode } from 'react';
-import { ArrowDown, ArrowUp, ClipboardCopy, Download, History, Monitor, Moon, Pencil, Sun, Trash2, Upload } from 'lucide-react';
+import { ArrowDown, ArrowUp, ChevronRight, ClipboardCopy, Download, Monitor, Moon, Pencil, Sun, Trash2, TriangleAlert, Upload } from 'lucide-react';
 import { countItems, ops, splitNames, useStore } from '@/lib/store';
-import { convertLegacy, parseBackup, readLegacyFromStorage } from '@/lib/migrate';
+import { parseBackup } from '@/lib/migrate';
 import { useTheme } from '@/lib/theme';
 import type { ThemePref } from '@/lib/theme';
 import { copyText } from './ShoppingScreen';
@@ -107,14 +107,18 @@ export function SettingsScreen() {
   const fileRef = useRef<HTMLInputElement>(null);
   if (!data) return null;
 
-  const hasLegacy = typeof window !== 'undefined' && !!readLegacyFromStorage();
   const backupJson = () => JSON.stringify(data, null, 2);
 
   const restore = (text: string) => {
     try {
       const next = parseBackup(text);
       const itemCount = next.facilities.reduce((n, f) => n + countItems(f), 0);
-      if (!window.confirm(`今のデータを、${next.facilities.length}施設・${itemCount}品目のデータで置き換えます。よろしいですか？`)) return;
+      if (
+        !window.confirm(
+          `全員（すべての端末）のデータを、${next.facilities.length}施設・${itemCount}品目の控えで置き換えます。\n今のデータは消えます。よろしいですか？`,
+        )
+      )
+        return;
       replaceAll(next, 'データを復元しました');
       setRestoreText('');
       setRestoreError('');
@@ -201,78 +205,79 @@ export function SettingsScreen() {
           </Card>
         </Section>
 
-        <Section title="バックアップ" note="念のための控えです。データの丸ごと保存・別の端末への移動に使えます">
-          <div className="flex gap-2">
-            <button className={btn} onClick={download}>
-              <Download size={18} />
-              ファイルに保存
-            </button>
-            <button
-              className={btn}
-              onClick={async () => showToast((await copyText(backupJson())) ? 'コピーしました' : 'コピーできませんでした')}
-            >
-              <ClipboardCopy size={18} />
-              コピー
-            </button>
+        {/* ふだんはクラウドに自動保存されるので、万一のときだけ使う。誤操作しないよう折りたたんでおく */}
+        <details className="group rounded-2xl border border-line bg-surface">
+          <summary className="flex cursor-pointer list-none items-center gap-2 px-4 py-3.5 [&::-webkit-details-marker]:hidden">
+            <ChevronRight size={18} className="text-muted transition-transform group-open:rotate-90" />
+            <span className="flex-1 font-bold">データの控え・復元</span>
+            <span className="text-xs text-muted">めったに使いません</span>
+          </summary>
+          <div className="space-y-6 border-t border-line p-4">
+            <p className="text-xs text-muted">
+              データはクラウドに自動で保存されているので、ふだんは使う必要はありません。大きな変更の前に控えを取っておきたいときなどに使います。
+            </p>
+
+            <Section title="控えを取る">
+              <div className="flex gap-2">
+                <button className={btn} onClick={download}>
+                  <Download size={18} />
+                  ファイルに保存
+                </button>
+                <button
+                  className={btn}
+                  onClick={async () => showToast((await copyText(backupJson())) ? 'コピーしました' : 'コピーできませんでした')}
+                >
+                  <ClipboardCopy size={18} />
+                  コピー
+                </button>
+              </div>
+            </Section>
+
+            <Section title="控えから復元">
+              <div className="mb-3 flex gap-2 rounded-xl bg-need-soft p-3 text-xs font-bold text-need">
+                <TriangleAlert size={16} className="shrink-0" />
+                復元すると、全員（すべての端末）のデータがこの内容に置き換わります
+              </div>
+              <div className="space-y-3">
+                <textarea
+                  value={restoreText}
+                  onChange={(e) => {
+                    setRestoreText(e.target.value);
+                    setRestoreError('');
+                  }}
+                  placeholder="控えの内容をここに貼り付け"
+                  rows={4}
+                  className="w-full rounded-xl border border-line bg-surface-2 p-3 font-mono text-xs outline-none focus:border-accent"
+                />
+                {restoreError && <p className="text-sm font-bold text-need">{restoreError}</p>}
+                <div className="flex gap-2">
+                  <button className={btn} onClick={() => fileRef.current?.click()}>
+                    <Upload size={18} />
+                    ファイルを選ぶ
+                  </button>
+                  <button
+                    disabled={!restoreText.trim()}
+                    onClick={() => restore(restoreText)}
+                    className="flex flex-1 items-center justify-center rounded-xl bg-need py-3 text-sm font-bold text-need-ink disabled:opacity-40"
+                  >
+                    貼り付けた内容で復元
+                  </button>
+                </div>
+                <input
+                  ref={fileRef}
+                  type="file"
+                  accept="application/json,.json,.txt"
+                  className="hidden"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    e.target.value = '';
+                    if (file) restore(await file.text());
+                  }}
+                />
+              </div>
+            </Section>
           </div>
-        </Section>
-
-        <Section title="復元" note="バックアップ（旧バージョンの「Backup Data」でコピーしたものも可）を貼り付けるか、ファイルを選んでください">
-          <Card className="space-y-3 p-3">
-            <textarea
-              value={restoreText}
-              onChange={(e) => {
-                setRestoreText(e.target.value);
-                setRestoreError('');
-              }}
-              placeholder="ここに貼り付け"
-              rows={4}
-              className="w-full rounded-xl border border-line bg-surface-2 p-3 font-mono text-xs outline-none focus:border-accent"
-            />
-            {restoreError && <p className="text-sm font-bold text-need">{restoreError}</p>}
-            <div className="flex gap-2">
-              <button className={btn} onClick={() => fileRef.current?.click()}>
-                <Upload size={18} />
-                ファイルを選ぶ
-              </button>
-              <button
-                disabled={!restoreText.trim()}
-                onClick={() => restore(restoreText)}
-                className="flex flex-1 items-center justify-center rounded-xl bg-accent py-3 text-sm font-bold text-accent-ink disabled:opacity-40"
-              >
-                貼り付けた内容で復元
-              </button>
-            </div>
-            <input
-              ref={fileRef}
-              type="file"
-              accept="application/json,.json,.txt"
-              className="hidden"
-              onChange={async (e) => {
-                const file = e.target.files?.[0];
-                e.target.value = '';
-                if (file) restore(await file.text());
-              }}
-            />
-          </Card>
-        </Section>
-
-        {hasLegacy && (
-          <Section title="旧バージョンのデータ" note="この端末には旧バージョンのデータが残っています（消さずに保管しています）">
-            <button
-              className={btn + ' w-full'}
-              onClick={() => {
-                const legacy = readLegacyFromStorage();
-                if (!legacy) return;
-                if (!window.confirm('今のデータを、旧バージョンのデータで置き換えます。よろしいですか？')) return;
-                replaceAll(convertLegacy(legacy), '旧バージョンのデータを読み込みました');
-              }}
-            >
-              <History size={18} />
-              旧バージョンのデータを読み込み直す
-            </button>
-          </Section>
-        )}
+        </details>
       </div>
     </>
   );
