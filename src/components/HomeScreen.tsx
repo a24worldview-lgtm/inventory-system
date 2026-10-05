@@ -1,6 +1,7 @@
 import { ChevronRight, ShoppingCart } from 'lucide-react';
 import { collectShopping, countItems, countNeeded, useStore } from '@/lib/store';
 import { formatRelative } from './ui';
+import { SyncBadge } from './SyncBadge';
 import type { Route } from './routes';
 
 export function HomeScreen({ go }: { go: (r: Route) => void }) {
@@ -10,7 +11,10 @@ export function HomeScreen({ go }: { go: (r: Route) => void }) {
 
   return (
     <div className="mx-auto max-w-2xl px-4 pb-28 pt-8">
-      <p className="text-sm font-bold tracking-wide text-muted">在庫チェック</p>
+      <div className="flex items-center justify-between">
+        <p className="text-sm font-bold tracking-wide text-muted">在庫チェック</p>
+        <SyncBadge />
+      </div>
       <h1 className="mt-1 text-3xl font-bold">Stock Master</h1>
 
       <button

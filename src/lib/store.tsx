@@ -2,6 +2,8 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import type { ReactNode } from 'react';
 import type { AppData, Facility, Item, Location } from './types';
 import { convertLegacy, createSeedData, newId, readLegacyFromStorage } from './migrate';
+import { Sync, isSyncConfigured } from './sync';
+import type { SyncStatus } from './sync';
 
 const STORAGE_KEY = 'stockmaster:v2';
 const MAX_QTY = 999;
@@ -235,6 +237,7 @@ type Toast = { id: number; message: string; undo?: AppData };
 type StoreValue = {
   data: AppData | null;
   loadSource: LoadResult['source'] | null;
+  syncStatus: SyncStatus;
   /** 操作を適用する。undoable を付けると、トーストに「元に戻す」が出る */
   apply: (mutator: Mutator, opts?: { toast?: string; undoable?: boolean }) => void;
   replaceAll: (data: AppData, toast?: string) => void;
@@ -254,6 +257,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [toast, setToast] = useState<Toast | null>(null);
   const dataRef = useRef<AppData | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const syncRef = useRef<Sync | null>(null);
+  const [syncStatus, setSyncStatus] = useState<SyncStatus>(isSyncConfigured ? 'connecting' : 'local');
 
   // localStorage はブラウザにしか無いので、描画後に読み込む（サーバー描画との食い違いを防ぐ）
   useEffect(() => {
@@ -275,14 +280,37 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       }
     };
     window.addEventListener('storage', onStorage);
-    return () => window.removeEventListener('storage', onStorage);
+
+    // Supabase の設定があればクラウドと同期する（無ければこの端末だけで動く）
+    if (isSyncConfigured) {
+      const sync = new Sync({
+        getData: () => dataRef.current,
+        setData: (next) => {
+          dataRef.current = next;
+          setData(next);
+          saveData(next);
+        },
+        onStatus: setSyncStatus,
+      });
+      syncRef.current = sync;
+      void sync.start();
+    }
+
+    return () => {
+      window.removeEventListener('storage', onStorage);
+      syncRef.current?.stop();
+      syncRef.current = null;
+    };
   }, []);
 
   const commit = useCallback((next: AppData) => {
+    const prev = dataRef.current;
     next.updatedAt = Date.now();
+    delete next.seeded;
     dataRef.current = next;
     setData(next);
     saveData(next);
+    if (prev) syncRef.current?.queue(prev, next);
   }, []);
 
   const pushToast = useCallback((message: string, undo?: AppData) => {
@@ -307,6 +335,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     () => ({
       data,
       loadSource,
+      syncStatus,
       apply,
       replaceAll: (next, message) => {
         const prev = dataRef.current ?? undefined;
@@ -322,7 +351,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       },
       dismissToast: () => setToast(null),
     }),
-    [data, loadSource, apply, commit, pushToast, toast],
+    [data, loadSource, syncStatus, apply, commit, pushToast, toast],
   );
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;

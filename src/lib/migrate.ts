@@ -143,8 +143,9 @@ const SEED_LOCATIONS = [
 ];
 
 export function createSeedData(): AppData {
-  return convertLegacy({
+  const data = convertLegacy({
     inventoryData: Object.fromEntries(SEED_FACILITIES.map((f) => [f, SEED_LOCATIONS])),
     shopOptions: SEED_SHOPS,
   });
+  return { ...data, seeded: true };
 }

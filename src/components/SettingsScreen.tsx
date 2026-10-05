@@ -201,7 +201,7 @@ export function SettingsScreen() {
           </Card>
         </Section>
 
-        <Section title="バックアップ" note="データはこの端末のブラウザに保存されています。機種変更の前などに保存しておくと安心です">
+        <Section title="バックアップ" note="念のための控えです。データの丸ごと保存・別の端末への移動に使えます">
           <div className="flex gap-2">
             <button className={btn} onClick={download}>
               <Download size={18} />

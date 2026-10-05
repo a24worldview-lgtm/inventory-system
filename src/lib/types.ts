@@ -35,4 +35,5 @@ export type AppData = {
   shops: Shop[];
   purchased: string[]; // 買い物リストで「買った」にチェックした品目ID
   updatedAt: number;
+  seeded?: true; // 初期サンプルのまま一度も編集していない。クラウドへ勝手に送らないための目印
 };
