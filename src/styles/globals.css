@@ -1,26 +1,89 @@
 @import "tailwindcss";
 
+/* 色はここで一括管理。変えたいときはこの値だけ触ればよい */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --bg: #f3f1ec;
+  --surface: #ffffff;
+  --surface-2: #f8f7f3;
+  --ink: #1d1c1a;
+  --muted: #6f6b63;
+  --line: #e3dfd6;
+  --accent: #1f5c48;
+  --accent-ink: #ffffff;
+  --accent-soft: #e3efe9;
+  --need: #c8402a;
+  --need-ink: #ffffff;
+  --need-soft: #fbeae6;
+  --done: #9a958b;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --bg: #151514;
+    --surface: #1f1f1d;
+    --surface-2: #262624;
+    --ink: #eeece7;
+    --muted: #a19d94;
+    --line: #34332f;
+    --accent: #5fb592;
+    --accent-ink: #0f1f18;
+    --accent-soft: #1d3029;
+    --need: #ef7a63;
+    --need-ink: #1f0e0a;
+    --need-soft: #3a1f19;
+    --done: #6f6b63;
   }
 }
 
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-accent: var(--accent);
+  --color-accent-ink: var(--accent-ink);
+  --color-accent-soft: var(--accent-soft);
+  --color-need: var(--need);
+  --color-need-ink: var(--need-ink);
+  --color-need-soft: var(--need-soft);
+  --color-done: var(--done);
+  --font-sans: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Yu Gothic UI", system-ui, sans-serif;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+}
+
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-sans);
+}
+
+/* iPhone のホームバーに下部ナビが隠れないようにする */
+.pb-safe {
+  padding-bottom: max(env(safe-area-inset-bottom), 0.5rem);
+}
+
+@keyframes sheet-up {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes toast-in {
+  from { opacity: 0; transform: translate(-50%, 12px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+.animate-sheet-up { animation: sheet-up 220ms cubic-bezier(.2,.8,.2,1); }
+.animate-fade-in { animation: fade-in 180ms ease-out; }
+.animate-toast-in { animation: toast-in 200ms ease-out; }
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-sheet-up, .animate-fade-in, .animate-toast-in { animation: none; }
 }
