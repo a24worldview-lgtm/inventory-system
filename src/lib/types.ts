@@ -16,10 +16,23 @@ export type Item = {
   defaultQty: number; // 「要購入」にしたとき最初に入る数
 };
 
+/** 置き方の見本写真。path は写真置き場（Supabase Storage）の中の場所 */
+export type GuidePhoto = {
+  id: string;
+  path: string; // 拡大表示用
+  thumbPath: string; // 一覧用の小さい写真（通信量を抑えるため別に保存）
+};
+
+export type LocationGuide = {
+  photos: GuidePhoto[];
+  note: string; // 「洗剤は右奥、ストックは左のカゴ」など
+};
+
 export type Location = {
   id: string;
   name: string;
   items: Item[];
+  guide?: LocationGuide; // まだ登録していない場所には無い
 };
 
 export type Facility = {

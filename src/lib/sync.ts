@@ -1,13 +1,10 @@
-import { createClient } from '@supabase/supabase-js';
 import type { RealtimePostgresChangesPayload, SupabaseClient } from '@supabase/supabase-js';
 import type { AppData, Facility, Shop } from './types';
+import { getSupabase, isSupabaseConfigured } from './supabase';
 
 // Supabase との同期。
 // 方針：画面はいつも端末内のデータ（localStorage）で即座に動かし、変更を少し後でまとめて送る。
 // 電波が無いときは送れなかった分を覚えておき、つながったら送り直す。
-
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? '';
-const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? '';
 
 const T_FACILITIES = 'sm_facilities';
 const T_SETTINGS = 'sm_settings';
@@ -18,7 +15,7 @@ const FLUSH_DELAY_MS = 400; // ＋ボタン連打などをまとめて1回で送
 const RETRY_MS = 5000;
 const PENDING_STORAGE_KEY = 'stockmaster:pending';
 
-export const isSyncConfigured = Boolean(SUPABASE_URL && SUPABASE_KEY);
+export const isSyncConfigured = isSupabaseConfigured;
 
 export type SyncStatus = 'local' | 'connecting' | 'synced' | 'syncing' | 'offline';
 
@@ -58,7 +55,7 @@ export class Sync {
 
   constructor(cb: Callbacks) {
     this.cb = cb;
-    this.client = createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: false } });
+    this.client = getSupabase();
     const p = readPending();
     this.dirty = new Set(p.dirty);
     this.deleted = new Set(p.deleted);
@@ -278,7 +275,8 @@ export class Sync {
   /** ほかの人（ほかの端末）の変更をリアルタイムで受け取る */
   private subscribe() {
     this.client
-      .channel('stockmaster')
+      // 接続は共有しているので、作り直したとき前の購読とぶつからないよう名前を毎回変える
+      .channel(`stockmaster-${Date.now()}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: T_FACILITIES }, (p) =>
         this.onFacilityChange(p as RealtimePostgresChangesPayload<FacilityRow>),
       )

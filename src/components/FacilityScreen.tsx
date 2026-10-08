@@ -9,10 +9,13 @@ import {
   RotateCcw,
   ShoppingCart,
   Trash2,
+  Camera,
+  Images,
 } from 'lucide-react';
 import { countNeeded, ops, splitNames, useStore } from '@/lib/store';
 import type { Facility, Location } from '@/lib/types';
 import { ItemSheet } from './ItemSheet';
+import { GuideSheet } from './GuideSheet';
 import { Card, Header, QuickAdd, Stepper, formatRelative } from './ui';
 import type { Route } from './routes';
 
@@ -24,6 +27,7 @@ export function FacilityScreen({ id, go, back }: { id: string; go: (r: Route) =>
   const [filter, setFilter] = useState<Filter>('all');
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const [openItemId, setOpenItemId] = useState<string | null>(null);
+  const [guide, setGuide] = useState<{ locationId: string; edit: boolean } | null>(null);
 
   const facility = data?.facilities.find((f) => f.id === id);
   if (!data) return null;
@@ -98,6 +102,7 @@ export function FacilityScreen({ id, go, back }: { id: string; go: (r: Route) =>
               isFirst={li === 0}
               isLast={li === facility.locations.length - 1}
               onOpenItem={setOpenItemId}
+              onOpenGuide={() => setGuide({ locationId: loc.id, edit: true })}
             />
           ) : (
             <CheckLocation
@@ -107,6 +112,7 @@ export function FacilityScreen({ id, go, back }: { id: string; go: (r: Route) =>
               filter={filter}
               collapsed={!!collapsed[loc.id]}
               onToggleCollapse={() => setCollapsed((c) => ({ ...c, [loc.id]: !c[loc.id] }))}
+              onOpenGuide={() => setGuide({ locationId: loc.id, edit: false })}
             />
           ),
         )}
@@ -161,6 +167,14 @@ export function FacilityScreen({ id, go, back }: { id: string; go: (r: Route) =>
       )}
 
       <ItemSheet facility={facility} itemId={openItemId} onClose={() => setOpenItemId(null)} />
+      {guide && (
+        <GuideSheet
+          facility={facility}
+          locationId={guide.locationId}
+          startEditing={guide.edit}
+          onClose={() => setGuide(null)}
+        />
+      )}
     </>
   );
 }
@@ -171,29 +185,44 @@ function CheckLocation({
   filter,
   collapsed,
   onToggleCollapse,
+  onOpenGuide,
 }: {
   facility: Facility;
   loc: Location;
   filter: Filter;
   collapsed: boolean;
   onToggleCollapse: () => void;
+  onOpenGuide: () => void;
 }) {
   const { data, apply } = useStore();
   const items = filter === 'needed' ? loc.items.filter((i) => i.needed) : loc.items;
   if (filter === 'needed' && items.length === 0) return null;
   const neededHere = loc.items.filter((i) => i.needed).length;
   const shopName = (shopId: string | null) => data?.shops.find((s) => s.id === shopId)?.name ?? '購入先未設定';
+  const hasGuide = !!loc.guide && (loc.guide.photos.length > 0 || !!loc.guide.note);
 
   return (
     <Card className="overflow-hidden">
-      <button onClick={onToggleCollapse} className="flex w-full items-center gap-2 px-4 py-3 text-left">
-        {collapsed ? <ChevronRight size={18} className="text-muted" /> : <ChevronDown size={18} className="text-muted" />}
-        <h2 className="flex-1 font-bold">{loc.name}</h2>
-        {neededHere > 0 && (
-          <span className="rounded-full bg-need-soft px-2.5 py-0.5 text-xs font-bold text-need">不足 {neededHere}</span>
+      <div className="flex items-center">
+        <button onClick={onToggleCollapse} className="flex min-w-0 flex-1 items-center gap-2 py-3 pl-4 pr-2 text-left">
+          {collapsed ? <ChevronRight size={18} className="text-muted" /> : <ChevronDown size={18} className="text-muted" />}
+          <h2 className="min-w-0 flex-1 truncate font-bold">{loc.name}</h2>
+          {neededHere > 0 && (
+            <span className="shrink-0 rounded-full bg-need-soft px-2.5 py-0.5 text-xs font-bold text-need">不足 {neededHere}</span>
+          )}
+          <span className="shrink-0 text-xs text-muted">{loc.items.length}品</span>
+        </button>
+        {/* 見本が登録されている場所だけに出す（無い場所まで出すと画面がうるさくなるため） */}
+        {hasGuide && (
+          <button
+            onClick={onOpenGuide}
+            className="mr-3 flex shrink-0 items-center gap-1 rounded-full bg-accent-soft px-3 py-1.5 text-xs font-bold text-accent"
+          >
+            <Images size={14} />
+            置き方
+          </button>
         )}
-        <span className="text-xs text-muted">{loc.items.length}品</span>
-      </button>
+      </div>
 
       {!collapsed && (
         <ul className="border-t border-line">
@@ -246,12 +275,14 @@ function EditLocation({
   isFirst,
   isLast,
   onOpenItem,
+  onOpenGuide,
 }: {
   facility: Facility;
   loc: Location;
   isFirst: boolean;
   isLast: boolean;
   onOpenItem: (id: string) => void;
+  onOpenGuide: () => void;
 }) {
   const { data, apply } = useStore();
   const [renaming, setRenaming] = useState(false);
@@ -301,6 +332,20 @@ function EditLocation({
           <Trash2 size={18} />
         </button>
       </div>
+
+      <button
+        onClick={onOpenGuide}
+        className="flex w-full items-center gap-2 border-b border-line bg-accent-soft/50 px-4 py-2.5 text-left text-sm font-bold text-accent"
+      >
+        <Camera size={16} />
+        <span className="flex-1">置き方の見本</span>
+        <span className="text-xs font-normal text-muted">
+          {loc.guide && (loc.guide.photos.length > 0 || loc.guide.note)
+            ? `写真${loc.guide.photos.length}枚${loc.guide.note ? '・メモあり' : ''}`
+            : '未登録'}
+        </span>
+        <ChevronRight size={16} className="text-muted" />
+      </button>
 
       <ul>
         {loc.items.map((item) => (

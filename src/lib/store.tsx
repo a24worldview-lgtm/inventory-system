@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
-import type { AppData, Facility, Item, Location } from './types';
+import type { AppData, Facility, GuidePhoto, Item, Location } from './types';
 import { convertLegacy, createSeedData, newId, readLegacyFromStorage } from './migrate';
 import { Sync, isSyncConfigured } from './sync';
 import type { SyncStatus } from './sync';
@@ -160,6 +160,20 @@ export const ops = {
     const removed = new Set(loc?.items.map((i) => i.id));
     f.locations = f.locations.filter((l) => l.id !== locationId);
     d.purchased = d.purchased.filter((id) => !removed.has(id));
+  },
+  addGuidePhotos: (facilityId: string, locationId: string, photos: GuidePhoto[]): Mutator => (d) => {
+    const loc = findFacility(d, facilityId)?.locations.find((l) => l.id === locationId);
+    if (!loc) return;
+    loc.guide = { photos: [...(loc.guide?.photos ?? []), ...photos], note: loc.guide?.note ?? '' };
+  },
+  removeGuidePhoto: (facilityId: string, locationId: string, photoId: string): Mutator => (d) => {
+    const loc = findFacility(d, facilityId)?.locations.find((l) => l.id === locationId);
+    if (loc?.guide) loc.guide.photos = loc.guide.photos.filter((p) => p.id !== photoId);
+  },
+  setGuideNote: (facilityId: string, locationId: string, note: string): Mutator => (d) => {
+    const loc = findFacility(d, facilityId)?.locations.find((l) => l.id === locationId);
+    if (!loc) return;
+    loc.guide = { photos: loc.guide?.photos ?? [], note: note.trim() };
   },
   resetFacility: (facilityId: string): Mutator => (d) => {
     const f = findFacility(d, facilityId);
