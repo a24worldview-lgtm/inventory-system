@@ -46,7 +46,7 @@ function resize(img: ImageBitmap | HTMLImageElement, maxPx: number): Promise<Blo
   );
 }
 
-/** 写真を縮小して保存し、見本写真として使える情報を返す */
+/** 写真を縮小して保存し、画面で使える情報を返す（置き方の見本・引き継ぎメモで共通） */
 export async function uploadGuidePhoto(file: File, folder: string): Promise<GuidePhoto> {
   const img = await loadImage(file);
   const [full, thumb] = await Promise.all([resize(img, FULL_MAX_PX), resize(img, THUMB_MAX_PX)]);

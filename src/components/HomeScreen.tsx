@@ -1,5 +1,5 @@
-import { ChevronRight, ShoppingCart } from 'lucide-react';
-import { collectShopping, countItems, countNeeded, useStore } from '@/lib/store';
+import { ChevronRight, ShoppingCart, StickyNote } from 'lucide-react';
+import { collectShopping, countItems, countNeeded, countOpenNotes, useStore } from '@/lib/store';
 import { formatRelative } from './ui';
 import { SyncBadge } from './SyncBadge';
 import type { Route } from './routes';
@@ -43,6 +43,7 @@ export function HomeScreen({ go }: { go: (r: Route) => void }) {
         <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {data.facilities.map((f) => {
             const needed = countNeeded(f);
+            const memos = countOpenNotes(f);
             return (
               <li key={f.id}>
                 <button
@@ -55,6 +56,12 @@ export function HomeScreen({ go }: { go: (r: Route) => void }) {
                       {countItems(f)} 品目 ・ 最終チェック {formatRelative(f.checkedAt)}
                     </div>
                   </div>
+                  {memos > 0 && (
+                    <span className="flex items-center gap-1 rounded-full bg-memo-soft px-2.5 py-1 text-sm font-bold text-memo">
+                      <StickyNote size={14} />
+                      {memos}
+                    </span>
+                  )}
                   {needed > 0 ? (
                     <span className="rounded-full bg-need-soft px-3 py-1 text-sm font-bold text-need">
                       不足 {needed}

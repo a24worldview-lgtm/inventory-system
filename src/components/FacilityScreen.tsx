@@ -16,6 +16,7 @@ import { countNeeded, ops, splitNames, useStore } from '@/lib/store';
 import type { Facility, Location } from '@/lib/types';
 import { ItemSheet } from './ItemSheet';
 import { GuideSheet } from './GuideSheet';
+import { NotesSection } from './Notes';
 import { Card, Header, QuickAdd, Stepper, formatRelative } from './ui';
 import type { Route } from './routes';
 
@@ -81,6 +82,8 @@ export function FacilityScreen({ id, go, back }: { id: string; go: (r: Route) =>
       />
 
       <div className="mx-auto max-w-2xl space-y-4 px-4 pb-40 pt-4">
+        {!editing && <NotesSection facility={facility} />}
+
         {!editing && (
           <p className="text-sm text-muted">
             足りない品をタップすると<span className="font-bold text-need">「要購入」</span>になります

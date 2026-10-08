@@ -6,7 +6,7 @@ import type { Facility, GuidePhoto } from '@/lib/types';
 import { Sheet } from './ui';
 
 /** 写真を全画面で表示する。左右の矢印かスワイプで切り替え、タップで閉じる */
-function Lightbox({ photos, index, onClose }: { photos: GuidePhoto[]; index: number; onClose: () => void }) {
+export function Lightbox({ photos, index, onClose }: { photos: GuidePhoto[]; index: number; onClose: () => void }) {
   const [i, setI] = useState(index);
   const startX = useRef<number | null>(null);
   const go = (d: number) => setI((v) => (v + d + photos.length) % photos.length);
@@ -37,7 +37,7 @@ function Lightbox({ photos, index, onClose }: { photos: GuidePhoto[]; index: num
       }}
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={photoUrl(photos[i].path)} alt="置き方の見本" className="max-h-full max-w-full object-contain" />
+      <img src={photoUrl(photos[i].path)} alt="拡大した写真" className="max-h-full max-w-full object-contain" />
       <button aria-label="閉じる" className="absolute right-4 top-4 rounded-full bg-white/15 p-2 text-white">
         <X size={24} />
       </button>

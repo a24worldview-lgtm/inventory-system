@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
-import type { AppData, Facility, GuidePhoto, Item, Location } from './types';
+import type { AppData, Facility, GuidePhoto, Item, Location, Note } from './types';
 import { convertLegacy, createSeedData, newId, readLegacyFromStorage } from './migrate';
 import { Sync, isSyncConfigured } from './sync';
 import type { SyncStatus } from './sync';
@@ -174,6 +174,27 @@ export const ops = {
     const loc = findFacility(d, facilityId)?.locations.find((l) => l.id === locationId);
     if (!loc) return;
     loc.guide = { photos: loc.guide?.photos ?? [], note: note.trim() };
+  },
+  addNote: (facilityId: string, note: Note): Mutator => (d) => {
+    const f = findFacility(d, facilityId);
+    if (f) f.notes = [...(f.notes ?? []), note];
+  },
+  updateNote: (facilityId: string, noteId: string, patch: Partial<Pick<Note, 'text' | 'author' | 'photos'>>): Mutator => (d) => {
+    const note = findFacility(d, facilityId)?.notes?.find((n) => n.id === noteId);
+    if (!note) return;
+    if (patch.text !== undefined && patch.text.trim()) note.text = patch.text.trim();
+    if (patch.author !== undefined) note.author = patch.author.trim();
+    if (patch.photos !== undefined) note.photos = patch.photos;
+  },
+  setNoteDone: (facilityId: string, noteId: string, done: boolean, by: string): Mutator => (d) => {
+    const note = findFacility(d, facilityId)?.notes?.find((n) => n.id === noteId);
+    if (!note) return;
+    note.doneAt = done ? Date.now() : null;
+    note.doneBy = done ? by : '';
+  },
+  deleteNote: (facilityId: string, noteId: string): Mutator => (d) => {
+    const f = findFacility(d, facilityId);
+    if (f?.notes) f.notes = f.notes.filter((n) => n.id !== noteId);
   },
   resetFacility: (facilityId: string): Mutator => (d) => {
     const f = findFacility(d, facilityId);
@@ -381,6 +402,10 @@ export function useStore(): StoreValue {
 
 export function countNeeded(f: Facility): number {
   return f.locations.reduce((n, l) => n + l.items.filter((i) => i.needed).length, 0);
+}
+
+export function countOpenNotes(f: Facility): number {
+  return (f.notes ?? []).filter((n) => !n.doneAt).length;
 }
 
 export function countItems(f: Facility): number {

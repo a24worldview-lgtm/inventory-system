@@ -35,11 +35,23 @@ export type Location = {
   guide?: LocationGuide; // まだ登録していない場所には無い
 };
 
+/** 引き継ぎメモ（「次に来たときここを見て」など） */
+export type Note = {
+  id: string;
+  text: string;
+  author: string; // 書いた人（清掃屋さんの名前など）
+  createdAt: number;
+  photos: GuidePhoto[];
+  doneAt: number | null; // 対応済みにした日時。null なら未対応
+  doneBy: string;
+};
+
 export type Facility = {
   id: string;
   name: string;
   locations: Location[];
   checkedAt: number | null; // 最後に在庫チェックした日時（ミリ秒）
+  notes?: Note[]; // 引き継ぎメモ（まだ一度も書いていない施設には無い）
 };
 
 export type AppData = {
