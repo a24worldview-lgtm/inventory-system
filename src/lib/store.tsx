@@ -4,8 +4,11 @@ import type { AppData, Facility, GuidePhoto, Item, Location, Note } from './type
 import { convertLegacy, createSeedData, newId, readLegacyFromStorage } from './migrate';
 import { Sync, isSyncConfigured } from './sync';
 import type { SyncStatus } from './sync';
+import { canUploadPhotos, deleteGuidePhoto } from './photos';
 
 const STORAGE_KEY = 'stockmaster:v2';
+// 対応済みの引き継ぎメモを残しておく期間。過ぎたら写真ごと自動で消す
+const NOTE_RETENTION_DAYS = 365;
 const MAX_QTY = 999;
 
 // ---------- 読み込み・保存 ----------
@@ -365,6 +368,22 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     },
     [commit, pushToast],
   );
+
+  // 古い対応済みメモの片付け。クラウドの最新を受け取ってから1回だけ行う（古い手元データで判断しないため）
+  const cleanedUp = useRef(false);
+  useEffect(() => {
+    if (cleanedUp.current || !(syncStatus === 'synced' || syncStatus === 'local')) return;
+    const d = dataRef.current;
+    if (!d) return;
+    cleanedUp.current = true;
+    const cutoff = Date.now() - NOTE_RETENTION_DAYS * 24 * 60 * 60 * 1000;
+    const expired = d.facilities.flatMap((f) =>
+      (f.notes ?? []).filter((n) => n.doneAt && n.doneAt < cutoff).map((n) => ({ facilityId: f.id, note: n })),
+    );
+    if (expired.length === 0) return;
+    apply((draft) => expired.forEach(({ facilityId, note }) => ops.deleteNote(facilityId, note.id)(draft)));
+    if (canUploadPhotos) expired.forEach(({ note }) => note.photos.forEach((p) => void deleteGuidePhoto(p)));
+  }, [syncStatus, data, apply]);
 
   const value = useMemo<StoreValue>(
     () => ({

@@ -75,6 +75,13 @@ export function NotesSection({ facility }: { facility: Facility }) {
   const open = notes.filter((n) => !n.doneAt).sort((a, b) => a.createdAt - b.createdAt);
   const done = notes.filter((n) => n.doneAt).sort((a, b) => (b.doneAt ?? 0) - (a.doneAt ?? 0));
 
+  const removeNote = (n: Note) => {
+    const msg = n.photos.length > 0 ? 'このメモを削除しますか？\n写真も消え、元に戻せません。' : 'このメモを削除しますか？（元に戻せません）';
+    if (!window.confirm(msg)) return;
+    apply(ops.deleteNote(facility.id, n.id), { toast: 'メモを削除しました' });
+    n.photos.forEach((p) => void deleteGuidePhoto(p));
+  };
+
   const toggleDone = (n: Note, value: boolean) =>
     // 誰が対応したかは記録しない。代わりに書いたメモの名前（清掃屋さんなど）が入ってしまうため
     apply(ops.setNoteDone(facility.id, n.id, value, ''), {
@@ -142,6 +149,7 @@ export function NotesSection({ facility }: { facility: Facility }) {
           </button>
           {showDone && (
             <ul className="space-y-2 px-3 pb-3">
+              <li className="px-1 text-xs text-muted">対応済みにしてから1年たったメモは、写真ごと自動で消えます</li>
               {done.map((n) => (
                 <li key={n.id} className="flex gap-3 rounded-xl bg-surface/60 p-3">
                   <div className="min-w-0 flex-1 space-y-1.5">
@@ -163,7 +171,7 @@ export function NotesSection({ facility }: { facility: Facility }) {
                     </button>
                     <button
                       aria-label="メモを削除"
-                      onClick={() => apply(ops.deleteNote(facility.id, n.id), { toast: 'メモを削除しました', undoable: true })}
+                      onClick={() => removeNote(n)}
                       className="flex items-center justify-center rounded-full px-2.5 py-1 text-need"
                     >
                       <Trash2 size={14} />
@@ -354,7 +362,10 @@ function NoteSheet({ facility, note, onClose }: { facility: Facility; note: Note
           {!isNew && (
             <button
               onClick={() => {
-                apply(ops.deleteNote(facility.id, note.id), { toast: 'メモを削除しました', undoable: true });
+                const hasPhotos = note.photos.length > 0 || addedThisTime.current.length > 0;
+                if (!window.confirm(hasPhotos ? 'このメモを削除しますか？\n写真も消え、元に戻せません。' : 'このメモを削除しますか？（元に戻せません）')) return;
+                apply(ops.deleteNote(facility.id, note.id), { toast: 'メモを削除しました' });
+                [...note.photos, ...addedThisTime.current].forEach((p) => void deleteGuidePhoto(p));
                 saved.current = true;
                 onClose();
               }}
