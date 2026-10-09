@@ -26,9 +26,18 @@ function saveAuthor(name: string) {
   }
 }
 
+const WEEKDAYS = ['日', '月', '火', '水', '木', '金', '土'];
+
 function formatDate(ts: number): string {
   const d = new Date(ts);
   return `${d.getMonth() + 1}/${d.getDate()}`;
+}
+
+/** 「10/8（水）」。今年でなければ年も付ける */
+function formatDateWithDay(ts: number): string {
+  const d = new Date(ts);
+  const year = d.getFullYear() !== new Date().getFullYear() ? `${d.getFullYear()}/` : '';
+  return `${year}${d.getMonth() + 1}/${d.getDate()}（${WEEKDAYS[d.getDay()]}）`;
 }
 
 function Thumbs({ photos, onOpen, size = 'md' }: { photos: GuidePhoto[]; onOpen: (i: number) => void; size?: 'sm' | 'md' }) {
@@ -102,11 +111,12 @@ export function NotesSection({ facility }: { facility: Facility }) {
                 className="flex cursor-pointer gap-3 rounded-xl bg-surface p-3 shadow-sm"
               >
                 <div className="min-w-0 flex-1 space-y-2">
+                  <p className="flex flex-wrap items-baseline gap-x-2 text-sm">
+                    <span className="font-bold text-memo tabular-nums">{formatDateWithDay(n.createdAt)}</span>
+                    <span className="text-muted">{n.author || '名前なし'}</span>
+                  </p>
                   <p className="whitespace-pre-wrap break-words text-base leading-relaxed">{n.text}</p>
                   <Thumbs photos={n.photos} onOpen={(i) => setLightbox({ photos: n.photos, index: i })} />
-                  <p className="text-xs text-muted">
-                    {n.author || '名前なし'} ・ {formatDate(n.createdAt)}
-                  </p>
                 </div>
                 <button
                   onClick={(e) => {
@@ -135,11 +145,12 @@ export function NotesSection({ facility }: { facility: Facility }) {
               {done.map((n) => (
                 <li key={n.id} className="flex gap-3 rounded-xl bg-surface/60 p-3">
                   <div className="min-w-0 flex-1 space-y-1.5">
+                    <p className="text-xs text-muted">
+                      <span className="font-bold tabular-nums">{formatDateWithDay(n.createdAt)}</span> {n.author || '名前なし'}
+                      <span className="ml-1">→ 済 {formatDate(n.doneAt!)}</span>
+                    </p>
                     <p className="whitespace-pre-wrap break-words text-sm text-muted line-through">{n.text}</p>
                     <Thumbs size="sm" photos={n.photos} onOpen={(i) => setLightbox({ photos: n.photos, index: i })} />
-                    <p className="text-xs text-muted">
-                      {n.author || '名前なし'} ・ {formatDate(n.createdAt)} → 済 {formatDate(n.doneAt!)}
-                    </p>
                   </div>
                   <div className="flex shrink-0 flex-col gap-1">
                     <button
